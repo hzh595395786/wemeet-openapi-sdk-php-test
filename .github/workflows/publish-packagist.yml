@@ -45,8 +45,19 @@ jobs:
       # 步骤4：通知Packagist（使用正确的Token）
       - name: Update Packagist
         run: |
-          curl -X POST \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.PACKAGIST_TOKEN }}" \
-            -d '{"repository":{"url":"https://github.com/${{ github.repository }}/tree/packagist-release"}}' \
-            https://packagist.org/api/update-package?force=1
+          # 检查包是否已存在
+          if curl -s "https://packagist.org/packages/your-vendor/your-package.json" | grep -q "package not found"; then
+            echo "Creating new package..."
+            curl -X POST \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer ${{ secrets.PACKAGIST_TOKEN }}" \
+              -d '{"repository":{"url":"https://github.com/${{ github.repository }}","branch":"packagist-release"}}' \
+              https://packagist.org/api/create-package
+          else
+            echo "Updating existing package..."
+            curl -X POST \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer ${{ secrets.PACKAGIST_TOKEN }}" \
+              -d '{"repository":{"url":"https://github.com/${{ github.repository }}","branch":"packagist-release"}}' \
+              "https://packagist.org/api/update-package?force=1"
+          fi
