@@ -1,15 +1,9 @@
-name: Publish SDK to Packagist
+name: Publish SDK from Main Branch
 
 on:
   push:
-    tags:
-      - 'v*'  # 匹配 v1.0.0 格式的标签
-  workflow_dispatch:  # 保留手动触发
-    inputs:
-      version:
-        description: 'SDK 版本号 (格式: x.y.z)'
-        required: true
-        type: string
+    branches: [ main ]  # 监听main分支的推送
+    paths: [ 'wemeetopenapi/composer.json' ]  # 仅当composer.json变更时触发
 
 jobs:
   publish:
@@ -19,37 +13,26 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.ref }}  # 自动识别Tag或分支
 
-      - name: Auto-detect version from tag
-        if: startsWith(github.ref, 'refs/tags/')
-        id: tag_version
-        run: |
-          TAG_VERSION="${GITHUB_REF#refs/tags/}"
-          echo "version=${TAG_VERSION#v}" >> $GITHUB_OUTPUT  # 去掉v前缀
-
-      - name: Set version (manual trigger)
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-        run: |
-          echo "version=${{ inputs.version }}" >> $GITHUB_ENV
-
-      - name: Update version in composer.json
+      - name: Read version from composer.json
+        id: get_version
         run: |
           cd wemeetopenapi
-          VERSION="${{ steps.tag_version.outputs.version || env.version }}"
-          jq ".version = \"$VERSION\"" composer.json > tmp.json && mv tmp.json composer.json
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-          git add composer.json
-          git commit -m "chore: bump version to $VERSION"
-          git push origin main
+          VERSION=$(jq -r '.version' composer.json)
+          if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid version format in composer.json: $VERSION"
+            exit 1
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Detected version: $VERSION"
 
-      - name: Split subdirectory to release branch
+      - name: Create packagist release branch
         run: |
           git subtree split -P wemeetopenapi -b packagist-release
           git push -f origin packagist-release
 
-      - name: Trigger Packagist update
-        uses: mheap/update-packagist@v1
+      - name: Notify Packagist
+        uses: php-actions/packagist-update@v1
         with:
           packagist-token: ${{ secrets.PACKAGIST_TOKEN }}
+          repository-url: https://github.com/${{ github.repository }}
