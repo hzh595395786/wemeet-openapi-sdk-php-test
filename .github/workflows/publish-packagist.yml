@@ -41,8 +41,13 @@ jobs:
           git commit -m "Release $(jq -r '.version' composer.json)"
           git branch -M packagist-release
           git push -f origin packagist-release
-
-      # 步骤4：通知Packagist（使用正确的Token）
+      # 步骤4：打 Tag
+      - name: Create Tag
+        run: |
+          VERSION=$(jq -r '.version' wemeetopenapi/composer.json)
+          git tag "v${VERSION}"
+          git push origin "v${VERSION}"
+      # 步骤5：通知Packagist（使用正确的Token）
       - name: Update Packagist
         run: |
           # 获取composer.json中的包名
