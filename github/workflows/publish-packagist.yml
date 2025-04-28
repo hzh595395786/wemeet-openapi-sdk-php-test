@@ -1,0 +1,25 @@
+name: Publish to Packagist
+
+on:
+  push:
+    branches: [ "main" ]  # 主分支更新时触发
+    paths: [ "wemeetopenapi/**" ]  # 仅监控子目录变更
+
+jobs:
+  sync-subdirectory:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整提交历史
+
+      - name: Split subdirectory to branch
+        run: |
+          git subtree split -P wemeetopenapi -b packagist-release
+          git push -f origin packagist-release
+
+      - name: Trigger Packagist update
+        uses: mheap/update-packagist@v1
+        with:
+          packagist-token: ${{ secrets.PACKAGIST_TOKEN }}

@@ -1,6 +1,6 @@
 {
-    "name": "wemeet/openapi",
-    "version": "v1.0.2",
+    "name": "wemeet/openapi-test",
+    "version": "v1.0.0",
     "description": "SAAS版RESTFUL风格API",
     "keywords": [
         "openapitools",
