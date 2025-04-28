@@ -1,31 +1,52 @@
-name: Manual Publish SDK
+name: Manual Publish SDK to Packagist
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # 仅手动触发
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
+      # 步骤1：使用PAT检出代码（解决403错误）
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.PACKAGIST_TOKEN }}  # 关键修改！使用PAT而非默认Token
+          token: ${{ secrets.GH_PAT }}  # 必须使用repo权限的GitHub Token
+          ref: main
 
-      - name: Prepare release branch
+      # 步骤2：验证composer.json
+      - name: Validate composer.json
         run: |
-          # 配置Git身份
+          cd wemeetopenapi
+          echo "当前版本: $(jq -r '.version' composer.json)"
+          composer validate --no-check-all || exit 1
+
+      # 步骤3：创建纯净发布分支
+      - name: Prepare packagist-release branch
+        run: |
+          # 配置Git身份（必须与GitHub账户匹配）
           git config --global user.name "hzh595395786"
-          git config --global user.email "595395786sh"
-          
-          # 创建或重置分支
-          git checkout --orphan packagist-release
+          git config --global user.email "595395786@qq.com"  # 修正为您的真实邮箱
+
+          # 创建只包含子目录内容的分支
+          git checkout --orphan temp-packagist
           git rm -rf .
           git checkout main -- wemeetopenapi/
           mv wemeetopenapi/* .
-          
-          # 提交并推送
+          rm -rf wemeetopenapi
+
+          # 提交到新分支
           git add .
           git commit -m "Release $(jq -r '.version' composer.json)"
-          git push -f origin packagist-release --force-with-lease
+          git branch -M packagist-release
+          git push -f origin packagist-release
+
+      # 步骤4：通知Packagist（使用正确的Token）
+      - name: Update Packagist
+        run: |
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.PACKAGIST_TOKEN }}" \
+            -d '{"repository":{"url":"https://github.com/${{ github.repository }}/tree/packagist-release"}}' \
+            https://packagist.org/api/update-package?force=1
