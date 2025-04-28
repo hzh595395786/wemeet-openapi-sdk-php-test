@@ -41,11 +41,6 @@ jobs:
           git commit -m "Release $(jq -r '.version' composer.json)"
           git branch -M packagist-release
           git push -f origin packagist-release
-      - name: Setup Packagist Auth
-        run: |
-          # 将 username:token 组合编码为 Base64
-          AUTH=$(echo -n "hzh595395786:${{ secrets.PACKAGIST_TOKEN }}" | base64 -w0)
-          echo "PACKAGIST_AUTH=$AUTH" >> $GITHUB_ENV
 
       # 步骤4：通知Packagist（使用正确的Token）
       - name: Update Packagist
@@ -61,14 +56,13 @@ jobs:
             echo "Creating new package..."
             curl -X POST \
               -H "Content-Type: application/json" \
-              -H "Authorization: Token $PACKAGIST_TOKEN" \
               -d '{"repository":{"url":"https://github.com/${{ github.repository }}","branch":"packagist-release"}}' \
-              https://packagist.org/api/create-package
+              https://packagist.org/api/create-package?username=595395786sh&apiToken=${{ secrets.PACKAGIST_TOKEN }}
           else
             echo "Updating existing package..."
             curl -X POST \
               -H "Content-Type: application/json" \
               -H "Authorization: Token $PACKAGIST_TOKEN" \
               -d '{"repository":{"url":"https://github.com/${{ github.repository }}"}}' \
-              "https://packagist.org/api/update-package?force=1"
+              "https://packagist.org/api/update-package?force=1&username=595395786sh&apiToken=${{ secrets.PACKAGIST_TOKEN }}"
           fi
