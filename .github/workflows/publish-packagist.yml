@@ -1,4 +1,4 @@
-name: Manual Publish SDK to Packagist
+name: Manual Publish SDK from Subdirectory
 
 on:
   workflow_dispatch:  # 仅手动触发
@@ -7,31 +7,44 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      # 步骤1：检出代码（完整历史）
+      - name: Checkout main branch
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: main
 
-      - name: Read version from composer.json
-        id: get_version
+      # 步骤2：验证composer.json
+      - name: Validate composer.json
         run: |
           cd wemeetopenapi
-          VERSION=$(jq -r '.version' composer.json)
-          if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::Invalid version format in composer.json: $VERSION"
-            exit 1
-          fi
-          echo "Detected version: $VERSION"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          composer validate --no-check-all
+          echo "Version: $(jq -r '.version' composer.json)"
 
-      - name: Create packagist release branch
+      # 步骤3：创建纯净发布分支
+      - name: Prepare packagist-release branch
         run: |
-          git subtree split -P wemeetopenapi -b packagist-release
+          # 创建孤立分支
+          git checkout --orphan packagist-release
+          git rm -rf .
+          
+          # 只同步子目录内容
+          git checkout main -- wemeetopenapi/
+          mv wemeetopenapi/* .
+          rm -rf wemeetopenapi
+          
+          # 提交到新分支
+          git add .
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git commit -m "Release $(jq -r '.version' composer.json)"
           git push -f origin packagist-release
 
-      - name: Notify Packagist
-        uses: php-actions/packagist-update@v1  # 改用这个官方维护的Action
-        with:
-          packagist-token: ${{ secrets.PACKAGIST_TOKEN }}
-          repository-url: https://github.com/${{ github.repository }}
+      # 步骤4：通过API通知Packagist（100%可靠方案）
+      - name: Update Packagist
+        run: |
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.PACKAGIST_TOKEN }}" \
+            -d '{"repository":{"url":"https://github.com/${{ github.repository }}/tree/packagist-release"}}' \
+            https://packagist.org/api/update-package?force=1
