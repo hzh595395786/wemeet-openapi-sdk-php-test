@@ -56,13 +56,12 @@ jobs:
             echo "Creating new package..."
             curl -X POST \
               -H "Content-Type: application/json" \
-              -d '{"repository":{"url":"https://github.com/${{ github.repository }}","branch":"packagist-release"}}' \
-              https://packagist.org/api/create-package?username=595395786sh&apiToken=${{ secrets.PACKAGIST_TOKEN }}
+              "https://packagist.org/api/create-package?username=hzh595395786&apiToken=${{ secrets.PACKAGIST_TOKEN }}" \
+              -d '{"repository":{"url":"https://github.com/${{ github.repository }}","branch":"packagist-release"}}'
           else
             echo "Updating existing package..."
             curl -X POST \
               -H "Content-Type: application/json" \
-              -H "Authorization: Token $PACKAGIST_TOKEN" \
-              -d '{"repository":{"url":"https://github.com/${{ github.repository }}"}}' \
-              "https://packagist.org/api/update-package?force=1&username=595395786sh&apiToken=${{ secrets.PACKAGIST_TOKEN }}"
+              "https://packagist.org/api/update-package?force=1&username=hzh595395786&apiToken=${{ secrets.PACKAGIST_TOKEN }}"
+              -d '{"repository":{"url":"https://github.com/${{ github.repository }}"}}'
           fi
