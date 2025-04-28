@@ -1,5 +1,5 @@
 {
-    "name": "wemeet/openapi-test",
+    "name": "wemeet/openapi-sdk-test",
     "version": "v1.0.0",
     "description": "SAAS版RESTFUL风格API",
     "keywords": [
