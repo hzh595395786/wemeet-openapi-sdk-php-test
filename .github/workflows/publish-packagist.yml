@@ -41,11 +41,14 @@ jobs:
           git commit -m "Release $(jq -r '.version' composer.json)"
           git branch -M packagist-release
           git push -f origin packagist-release
+      - name: Setup Packagist Auth
+        run: |
+          # 将 username:token 组合编码为 Base64
+          AUTH=$(echo -n "hzh595395786:${{ secrets.PACKAGIST_TOKEN }}" | base64 -w0)
+          echo "PACKAGIST_AUTH=$AUTH" >> $GITHUB_ENV
 
       # 步骤4：通知Packagist（使用正确的Token）
       - name: Update Packagist
-        env:
-          PACKAGIST_TOKEN: ${{ secrets.PACKAGIST_TOKEN }}
         run: |
           # 获取composer.json中的包名
           PACKAGE_NAME=$(jq -r '.name' composer.json)
