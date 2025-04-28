@@ -11,7 +11,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: main  # 明确指定main分支
+          ref: main
 
       - name: Read version from composer.json
         id: get_version
@@ -31,6 +31,7 @@ jobs:
           git push -f origin packagist-release
 
       - name: Notify Packagist
-        uses: mheap/update-packagist@v1
+        uses: php-actions/packagist-update@v1  # 改用这个官方维护的Action
         with:
           packagist-token: ${{ secrets.PACKAGIST_TOKEN }}
+          repository-url: https://github.com/${{ github.repository }}
