@@ -1,50 +1,31 @@
-name: Manual Publish SDK from Subdirectory
+name: Manual Publish SDK
 
 on:
-  workflow_dispatch:  # 仅手动触发
+  workflow_dispatch:
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      # 步骤1：检出代码（完整历史）
-      - name: Checkout main branch
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: main
+          token: ${{ secrets.PAT_TOKEN }}  # 关键修改！使用PAT而非默认Token
 
-      # 步骤2：验证composer.json
-      - name: Validate composer.json
+      - name: Prepare release branch
         run: |
-          cd wemeetopenapi
-          composer validate --no-check-all
-          echo "Version: $(jq -r '.version' composer.json)"
-
-      # 步骤3：创建纯净发布分支
-      - name: Prepare packagist-release branch
-        run: |
-          # 创建孤立分支
+          # 配置Git身份
+          git config --global user.name "hzh595395786"
+          git config --global user.email "595395786sh"
+          
+          # 创建或重置分支
           git checkout --orphan packagist-release
           git rm -rf .
-          
-          # 只同步子目录内容
           git checkout main -- wemeetopenapi/
           mv wemeetopenapi/* .
-          rm -rf wemeetopenapi
           
-          # 提交到新分支
+          # 提交并推送
           git add .
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
           git commit -m "Release $(jq -r '.version' composer.json)"
-          git push -f origin packagist-release
-
-      # 步骤4：通过API通知Packagist（100%可靠方案）
-      - name: Update Packagist
-        run: |
-          curl -X POST \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.PACKAGIST_TOKEN }}" \
-            -d '{"repository":{"url":"https://github.com/${{ github.repository }}/tree/packagist-release"}}' \
-            https://packagist.org/api/update-package?force=1
+          git push -f origin packagist-release --force-with-lease
