@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ GH_PAT }}  # 必须使用repo权限的GitHub Token
+          token: ${{ secrets.GH_PAT }}  # 必须使用repo权限的GitHub Token
           ref: main
 
       # 步骤2：验证composer.json
