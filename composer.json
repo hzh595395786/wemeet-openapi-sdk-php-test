@@ -59,7 +59,7 @@
             "wemeet\\openapi\\core\\exception\\" : "src/core/exception/"
         },
         "classmap":[
-            "src"
+            "wemeetopenapi/src"
         ]
     },
     "autoload-dev": {
